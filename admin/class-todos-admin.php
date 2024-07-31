@@ -29,6 +29,11 @@ class Todos_Admin {
 		$this->plugin_name = $plugin_name;
 		$this->version = $version;
 
+		date_default_timezone_set('Europe/Moscow');
+
+
+		add_shortcode( 'shortcode_todo', [$this, 'shortcode_todo'] );
+
 	}
 
 	public function enqueue_styles() {
@@ -101,32 +106,13 @@ class Todos_Admin {
 
 	public function sync_todo() {
 
+
 		$requsetList = $this->requst_get_todos();
+		if ( $requsetList['data'] ) {
+			$this->insert_dotos($requsetList['data']);
+		}
 
-		// $last = $this->get_last_todos( 5, false);
-		// if ( $last ) {
-		// 	$lastNumber = array_pop($requsetList['data']);
-		// 	var_dump($lastNumber);
-		// 	if ( $last['todo_id'] != $lastNumber['id'] ) {
-		// 		$newItems = [];
-		// 		foreach ($requsetList as $key => $item) {
-		// 			if ( $item['id'] <= $last['todo_id'] ) continue;
-		// 			$newItems[] = $item;
-		// 		}
-		// 		// $this->insert_dotos($newItems);
-		// 		var_dump('q');
-		// 	} else {
-		// 		var_dump('w');
-		// 	}
-
-		// } else {
-		// 	var_dump('e');
-
-			// $this->insert_dotos($requsetList['data']);
-		// }
-
-
-
+		update_option('todo-sync-date', date('Y-m-d H:i:s') );
 		echo json_encode( $requsetList );
 		wp_die();
 
@@ -134,14 +120,12 @@ class Todos_Admin {
 
 	public function insert_dotos( $list ) {
 		global $wpdb;
-
 		$table_name = $wpdb->prefix .'todos';
 
+		$this->clean_table();
 
 		foreach ($list as $item) {
-
 			$completed = $item['completed'] == true ? 1 : 0;
-
 			$wpdb->insert($table_name, array(
 				'todo_user_id' => $item['userId'],
 				'todo_title' => $item['title'],
@@ -149,6 +133,13 @@ class Todos_Admin {
 			));
 
 		}
+
+	}
+
+	public function clean_table() {
+		global $wpdb;
+		$table_name = $wpdb->prefix .'todos';
+		$wpdb->query( "TRUNCATE $table_name" );
 
 	}
 
@@ -176,6 +167,17 @@ class Todos_Admin {
 
 	}
 
+	public function shortcode_todo( $atts ) {
+
+		$todos = $this->get_last_todos( 5, false );
+
+
+		// load_template( dirname( __FILE__ )  . '/template/view-shortcode-todos.php', true, $todos);
+		load_template( plugin_dir_path( __FILE__ )  . '/template/view-shortcode-todos.php', true, $todos);
+
+		return $todos;
+	}
+
 	public function get_last_todos( $count, $completed ){
 		global $wpdb;
 		$table_name = $wpdb->prefix .'todos';
@@ -185,8 +187,7 @@ class Todos_Admin {
 										( SELECT *  FROM $table_name
 											WHERE todo_completed = $_completed
 											ORDER BY todo_id DESC
-											LIMIT $count ) as rand_list ORDER BY RAND()");
-
+											LIMIT $count ) as rand_list ORDER BY RAND()", ARRAY_A);
 
 		return $random;
 
@@ -213,6 +214,14 @@ class Todos_Admin {
 
 		add_action( "load-$hook", [$this, 'example_table_page_load'] );
 
+		add_submenu_page(
+			'todo',
+			'Шорткод',
+			'Последние 5 записей',
+			'manage_options',
+			'todo-5',
+			[$this, 'view_todo_page_5' ]
+		);
 
 	}
 
@@ -237,14 +246,17 @@ class Todos_Admin {
 
 
 		$file = plugin_dir_path( __FILE__ ) . "partials/todos-admin-display.php";
-		if ( file_exists( 'D:\ospanel\domains\ipb\wp-content\plugins\todos\admin\partials\todos-admin-display.php' ) )
+		if ( file_exists( plugin_dir_path( __FILE__ ) . "partials/todos-admin-display.php" ) )
         	require $file;
 
 
 	}
 
-
-
+	public function view_todo_page_5() {
+		$file = plugin_dir_path( __FILE__ ) . "partials/todos-admin-display-5.php";
+		if ( file_exists( plugin_dir_path( __FILE__ ) . "partials/todos-admin-display-5.php" ) )
+        	require $file;
+	}
 
 
 

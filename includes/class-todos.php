@@ -75,6 +75,8 @@ class Todos {
 		$this->loader->add_action( 'admin_menu', $plugin_admin, 'add_todo_page' );
 		$this->loader->add_action( 'wp_ajax_sync-todo', $plugin_admin, 'sync_todo' );
 
+		// $this->loader->add_action( 'wp_ajax_sync-todo', $plugin_admin, 'sync_todo' );
+
 	}
 
 	private function define_public_hooks() {

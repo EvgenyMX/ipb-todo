@@ -33,10 +33,10 @@ class ToDo_List_Table extends WP_List_Table {
 		// пагинация
 		$per_page = get_user_meta( get_current_user_id(), get_current_screen()->get_option( 'per_page', 'option' ), true ) ?: 20;
 
-		$this->set_pagination_args( array(
-			'total_items' => 3,
-			'per_page'    => $per_page,
-		) );
+		// $this->set_pagination_args( array(
+		// 	'total_items' => 3,
+		// 	'per_page'    => $per_page,
+		// ) );
 		$cur_page = (int) $this->get_pagenum(); // желательно после set_pagination_args()
 
 		// элементы таблицы
@@ -99,6 +99,16 @@ class ToDo_List_Table extends WP_List_Table {
 
 	// Элементы управления таблицей. Расположены между групповыми действиями и панагией.
 	function extra_tablenav( $which ){
+
+		$btn = get_submit_button( "Поиск", "", "", false, array( "id" => "search-submit" ) );
+		$s_inp =  '<p class="search-box">
+			<input type="hidden" name="page" value="todo">
+			<input type="search" id="todo-seach" name="s" value="'._admin_search_query().'" placeholder="Поиск по Title">
+			'.$btn.'
+			</p>';
+
+		echo $s_inp;
+
 		// echo '<div class="alignleft actions">HTML код полей формы (select). Внутри тега form...</div>';
 	}
 
