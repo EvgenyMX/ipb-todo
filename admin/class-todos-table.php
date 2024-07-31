@@ -46,7 +46,6 @@ class ToDo_List_Table extends WP_List_Table {
         $plugin = new Todos_Admin('','');
 
 
-
         if ( isset($_REQUEST['s']) && isset($_REQUEST['page']) && $_REQUEST['page'] == 'todo' ) {
             $text = $_REQUEST['s'];
             $list = $plugin->search($text, 'todo_title');
@@ -99,15 +98,6 @@ class ToDo_List_Table extends WP_List_Table {
 
 	// Элементы управления таблицей. Расположены между групповыми действиями и панагией.
 	function extra_tablenav( $which ){
-
-		$btn = get_submit_button( "Поиск", "", "", false, array( "id" => "search-submit" ) );
-		$s_inp =  '<p class="search-box">
-			<input type="hidden" name="page" value="todo">
-			<input type="search" id="todo-seach" name="s" value="'._admin_search_query().'" placeholder="Поиск по Title">
-			'.$btn.'
-			</p>';
-
-		echo $s_inp;
 
 		// echo '<div class="alignleft actions">HTML код полей формы (select). Внутри тега form...</div>';
 	}
