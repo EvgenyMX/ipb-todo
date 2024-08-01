@@ -44,6 +44,14 @@ class Todos_Admin {
 		wp_enqueue_script( $this->plugin_name, plugin_dir_url( __FILE__ ) . 'js/todos-admin.js', array( 'jquery' ), $this->version, false );
 	}
 
+	public function logging($text) {
+		$path_log = WP_CONTENT_DIR . '/uploads/todo/todo.log';
+		if ( ! file_exists($path_log) ) {
+			wp_mkdir_p($path_log);
+		}
+		file_put_contents( $path_log . '/todo-'.date("Y-m-d").'.log', date("Y-m-d H:i:s") . " $text " . "\n", FILE_APPEND );
+	}
+
 
 	private function sendCurl( $method = 'GET', $url = '', $data = [], $headers = [] ) {
 
@@ -89,28 +97,27 @@ class Todos_Admin {
 	}
 
 
-	public function requst_get_todos() {
+	public function request_get_todos() {
 	 	$url = 'https://jsonplaceholder.typicode.com/todos';
 
 		$request = $this->sendCurl( 'GET', $url );
 
 		if ( $request['code'] != 200 ) {
-			return false;
+			$this->logging("request_get_todos: Error " . $request['error'] . " Code " . $request['code']);
+			return;
 		}
 
 		return $request;
-
-
 	}
 
 
 	public function sync_todo() {
-
-
-		$requsetList = $this->requst_get_todos();
-		if ( $requsetList['data'] ) {
-			$this->insert_dotos($requsetList['data']);
+		$requsetList = $this->request_get_todos();
+		if ( ! $requsetList['data'] ) {
+			$this->logging("sync_todo: Empty ");
+			return;
 		}
+		$this->insert_dotos($requsetList['data']);
 
 		update_option('todo-sync-date', date('Y-m-d H:i:s') );
 		echo json_encode( $requsetList );
@@ -123,6 +130,11 @@ class Todos_Admin {
 		$table_name = $wpdb->prefix .'todos';
 
 		$this->clean_table();
+
+		if ( !$list ) {
+			$this->logging("insert_dotos: Empty ");
+			return;
+		}
 
 		foreach ($list as $item) {
 			$completed = $item['completed'] == true ? 1 : 0;
@@ -169,7 +181,12 @@ class Todos_Admin {
 
 	public function shortcode_todo( $atts ) {
 
-		$todos = $this->get_last_todos( 5, false );
+
+		$count = isset( $atts['count'] ) && $atts['count'] > 0 ? $atts['count'] : 5;
+		$completed = isset( $atts['completed'] ) && $atts['completed'] === "true" ? 1 : 0;
+		$user_id = isset( $atts['user_id'] ) && $atts['user_id'] ? $atts['user_id'] : '';
+
+		$todos = $this->get_last_todos( $count, $completed, $user_id );
 
 
 		// load_template( dirname( __FILE__ )  . '/template/view-shortcode-todos.php', true, $todos);
@@ -178,14 +195,17 @@ class Todos_Admin {
 		return $todos;
 	}
 
-	public function get_last_todos( $count, $completed ){
+	public function get_last_todos( $count, $completed, $user_id = false ){
 		global $wpdb;
 		$table_name = $wpdb->prefix .'todos';
 
-		$_completed = $completed ? 1 : 0;
+		$user =  $user_id ? "AND todo_user_id = $user_id" : '';
+
+
 		$random = $wpdb->get_results( "SELECT * FROM
 										( SELECT *  FROM $table_name
-											WHERE todo_completed = $_completed
+											WHERE todo_completed = $completed
+											$user
 											ORDER BY todo_id DESC
 											LIMIT $count ) as rand_list ORDER BY RAND()", ARRAY_A);
 
@@ -193,11 +213,17 @@ class Todos_Admin {
 
 	}
 
-	public function get_todos() {
+	public function get_todos( $count = false ) {
 		global $wpdb;
-
 		$table_name = $wpdb->prefix .'todos';
-		$todo = $wpdb->get_results( "SELECT * FROM $table_name", ARRAY_A);
+
+		$query = "SELECT * FROM $table_name";
+
+		if ( $count ) {
+			$query .= " LIMIT 0, $count";
+		}
+
+		$todo = $wpdb->get_results( $query, ARRAY_A);
 		return $todo;
 	}
 
